@@ -1,6 +1,6 @@
 <?php 
 require 'includes/header.php'; 
-if ($role !== 'user') die('<h2><center><br><br>Access Restricted. Students Only.</center></h2>');
+if ($role !== 'staff') die('<h2><center><br><br>Access Restricted. Staff / Faculty Only.</center></h2>');
 
 // Live Tracking: See if the student is already waiting on food right now!
 $liveQ = $conn->query("SELECT * FROM orders WHERE user_id=$user_id AND status='pending' ORDER BY id DESC LIMIT 1");

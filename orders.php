@@ -4,7 +4,7 @@ if ($role !== 'admin') die("Access Denied");
 
 $orders = $conn->query("SELECT orders.*, users.username FROM orders LEFT JOIN users ON orders.user_id = users.id ORDER BY order_date DESC");
 ?>
-<h2 style="margin-bottom: 20px;">Live Canteen Counter</h2>
+<h2 style="margin-bottom: 20px;">Kitchen Display System (Live)</h2>
 <table>
     <thead>
         <tr>
@@ -13,7 +13,7 @@ $orders = $conn->query("SELECT orders.*, users.username FROM orders LEFT JOIN us
             <th>Pickup Scheduled</th>
             <th>Total Value</th>
             <th>Status</th>
-            <th>Counter Action</th>
+            <th>Kitchen Action</th>
         </tr>
     </thead>
     <tbody>
@@ -47,7 +47,7 @@ $orders = $conn->query("SELECT orders.*, users.username FROM orders LEFT JOIN us
             <td>
                 <?php if ($row['status'] == 'pending'): ?>
                 <button onclick="handleAction('serve_order', <?php echo $row['id']; ?>)" class="btn" style="padding: 5px 10px; font-size: 12px; background-color: #38a169;">✅ Serve</button>
-                <button onclick="confirmAction('cancel_order', <?php echo $row['id']; ?>, 'Reject order and issue automatic refund?')" class="btn" style="padding: 5px 10px; font-size: 12px; background-color: #e53e3e; margin-left: 5px;">❌ Reject</button>
+                <button onclick="confirmAction('cancel_order', <?php echo $row['id']; ?>, 'Kitchen Reject order and refund student wallet?')" class="btn" style="padding: 5px 10px; font-size: 12px; background-color: #e53e3e; margin-left: 5px;">❌ Reject</button>
                 <?php else: ?>
                 <span style="color: #a0aec0; font-size: 12px;">Locked</span>
                 <?php endif; ?>

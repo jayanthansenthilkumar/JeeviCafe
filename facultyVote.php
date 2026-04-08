@@ -1,6 +1,6 @@
 <?php
 require 'includes/header.php';
-if ($role !== 'user') die("Access Denied");
+if ($role !== 'staff') die("Access Denied");
 $user_id = $_SESSION['user_id'];
 
 $polls = $conn->query("SELECT * FROM menu_polls WHERE is_active=1");

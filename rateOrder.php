@@ -2,7 +2,7 @@
 require 'includes/header.php';
 if ($role !== 'user') die("Access Denied");
 
-if (!isset($_GET['id'])) header("Location: my_orders.php");
+if (!isset($_GET['id'])) header("Location: myOrders.php");
 $order_id = intval($_GET['id']);
 
 $check = $conn->query("SELECT * FROM orders WHERE id=$order_id AND user_id=$user_id AND status='completed' AND is_rated=0");

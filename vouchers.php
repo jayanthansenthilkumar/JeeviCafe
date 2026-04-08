@@ -21,6 +21,13 @@ $vouchers = $conn->query("SELECT * FROM vouchers ORDER BY id DESC");
                 <label>Global Claim Limit (Accounts)</label>
                 <input type="number" name="max_uses" placeholder="50" required>
             </div>
+            <div class="form-group">
+                <label>Target Demographic Distribution</label>
+                <select name="target_role" required>
+                    <option value="user">Student Population Only</option>
+                    <option value="staff">Kitchen Staff Sign-On Bonus Only</option>
+                </select>
+            </div>
             <button type="submit" class="btn" style="width: 100%; background-color:#38a169;">Deploy Code to Server</button>
         </form>
     </div>
@@ -32,6 +39,7 @@ $vouchers = $conn->query("SELECT * FROM vouchers ORDER BY id DESC");
             <thead>
                 <tr>
                     <th>Access Code</th>
+                    <th>Target</th>
                     <th>Reward</th>
                     <th>Claims / Limits</th>
                     <th>Status</th>
@@ -42,6 +50,7 @@ $vouchers = $conn->query("SELECT * FROM vouchers ORDER BY id DESC");
                 <?php while ($row = $vouchers->fetch_assoc()): ?>
                 <tr>
                     <td style="font-weight:bold; letter-spacing:1px;"><?php echo htmlspecialchars($row['code']); ?></td>
+                    <td style="font-weight:bold; text-transform:uppercase; color:#2b6cb0;"><?php echo $row['target_role']; ?></td>
                     <td style="color:#38a169; font-weight:bold;">+$<?php echo number_format($row['discount_value'], 2); ?></td>
                     <td><?php echo $row['current_uses']; ?> / <?php echo $row['max_uses']; ?></td>
                     <td>

@@ -1,7 +1,8 @@
 <?php 
 require 'includes/header.php'; 
-if ($role !== 'user') die("Access Denied");
+if ($role !== 'staff') die("Access Denied");
 
+$user_id = $_SESSION['user_id'];
 $orders = $conn->query("SELECT * FROM orders WHERE user_id = $user_id ORDER BY order_date DESC");
 ?>
 <h2 style="margin-bottom: 20px;">My Order History</h2>
@@ -35,7 +36,7 @@ $orders = $conn->query("SELECT * FROM orders WHERE user_id = $user_id ORDER BY o
                 <?php if ($row['status'] == 'completed'): ?>
                     <span class="badge badge-completed" style="margin-bottom:5px;">Food Served!</span><br>
                     <?php if(!$row['is_rated']): ?>
-                        <a href="rate_order.php?id=<?php echo $row['id']; ?>" class="btn" style="padding: 3px 6px; font-size: 11px; background-color: #dd6b20;">Leave Feedback</a>
+                        <a href="rateOrder.php?id=<?php echo $row['id']; ?>" class="btn" style="padding: 3px 6px; font-size: 11px; background-color: #dd6b20;">Leave Feedback</a>
                     <?php else: ?>
                         <span style="font-size: 11px; color:#718096">Rated ⭐</span>
                     <?php endif; ?>

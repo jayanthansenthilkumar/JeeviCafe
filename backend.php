@@ -5,8 +5,9 @@ header('Content-Type: application/json');
 
 $action = $_REQUEST['action'] ?? '';
 $user_id = $_SESSION['user_id'] ?? 0;
-$role = $_SESSION['role'] ?? 'guest';
+$role = trim(strtolower($_SESSION['role'] ?? 'guest'));
 $is_admin = ($role === 'admin');
+$is_staff = ($role === 'staff');
 
 if (!$user_id && !in_array($action, ['login', 'register'])) {
     echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
@@ -29,7 +30,12 @@ try {
                     $_SESSION['user_id'] = $row['id'];
                     $_SESSION['username'] = $username;
                     $_SESSION['role'] = $row['role'];
-                    $response = ['status' => 'success', 'redirect' => ($row['role'] === 'admin' ? "dashboard.php" : "index.php")];
+                    
+                    $redirect = "index.php"; // Default for students
+                    if ($row['role'] === 'staff') $redirect = "facultyIndex.php";
+                    if ($row['role'] === 'admin') $redirect = "dashboard.php";
+                    
+                    $response = ['status' => 'success', 'redirect' => $redirect];
                 } else {
                     $response['message'] = "Invalid password.";
                 }
@@ -39,14 +45,17 @@ try {
             break;
 
         case 'register':
+            $reg_num = $_POST['register_number'];
             $username = $_POST['username'];
             $password = $_POST['password'];
-            $stmt = $conn->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'user')");
-            $stmt->bind_param("ss", $username, $password);
+            $reg_role = ($_POST['role'] === 'staff') ? 'staff' : 'user';
+            
+            $stmt = $conn->prepare("INSERT INTO users (username, password, role, register_number) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("ssss", $username, $password, $reg_role, $reg_num);
             if ($stmt->execute()) {
-                $response = ['status' => 'success', 'message' => 'Account created! Please login.', 'redirect' => 'login.php'];
+                $response = ['status' => 'success', 'message' => 'Profile created natively!', 'redirect' => 'login.php'];
             } else {
-                $response['message'] = "Username already exists.";
+                $response['message'] = "Username or Reg Number already securely exists.";
             }
             break;
 
@@ -56,7 +65,7 @@ try {
             break;
 
         case 'place_order':
-            if ($role !== 'user') throw new Exception("Access Denied");
+            if (!in_array($role, ['user', 'staff'])) throw new Exception("Access Denied");
             $food_name = $_POST['food_name'];
             $quantity = $_POST['quantity'];
             $pickup_time = $_POST['pickup_time'];
@@ -81,7 +90,7 @@ try {
             break;
 
         case 'surprise_me':
-            if ($role !== 'user') throw new Exception("Denied");
+            if (!in_array($role, ['user', 'staff'])) throw new Exception("Denied");
             $rand = $conn->query("SELECT *, RAND() as rnd FROM menu WHERE is_available=1 ORDER BY rnd LIMIT 1");
             if($row = $rand->fetch_assoc()) {
                 $food_name = $row['food_name'];
@@ -103,20 +112,34 @@ try {
             break;
 
         case 'redeem_voucher':
-            if ($role !== 'user') throw new Exception("Denied");
-            $code = strtoupper(trim($_POST['code']));
+            if (!in_array($role, ['user', 'staff'])) throw new Exception("Denied. Managerial Accounts cannot claim discounts.");
+            $code = strtoupper(trim($_POST['code'] ?? $_POST['id'] ?? ''));
             
             $vQ = $conn->prepare("SELECT * FROM vouchers WHERE code=? AND is_active=1");
             $vQ->bind_param("s", $code);
             $vQ->execute();
             $v = $vQ->get_result()->fetch_assoc();
             
-            if(!$v) throw new Exception("Invalid or expired code.");
+            if(!$v) throw new Exception("Invalid or expired promotional code.");
+            
+            // Critical Role Segmentation!
+            if ($v['target_role'] !== $role) {
+                throw new Exception("Security Alert: This promotional code is geographically locked to the " . strtoupper($v['target_role']) . " demographic. You cannot claim it!");
+            }
+            
+            // Explicit limitation for staff only, as requested.
+            if ($role === 'staff') {
+                $staffCheck = $conn->query("SELECT * FROM user_vouchers WHERE user_id=$user_id");
+                if ($staffCheck->num_rows > 0) {
+                    throw new Exception("Policy Enforcement: Kitchen Staff accounts are strictly limited to redeeming exactly one (1) lifetime bonus voucher.");
+                }
+            }
+
             if($v['current_uses'] >= $v['max_uses']) throw new Exception("Voucher has reached full usage capacity globally.");
             
             $vid = $v['id'];
             $check = $conn->query("SELECT * FROM user_vouchers WHERE user_id=$user_id AND voucher_id=$vid");
-            if($check->num_rows > 0) throw new Exception("You have already claimed this voucher.");
+            if($check->num_rows > 0) throw new Exception("You have already claimed this specific voucher on your account.");
             
             $val = $v['discount_value'];
             $conn->query("INSERT INTO user_vouchers (user_id, voucher_id) VALUES ($user_id, $vid)");
@@ -127,7 +150,7 @@ try {
                 $conn->query("UPDATE vouchers SET is_active=0 WHERE id=$vid");
             }
             
-            $response = ['status' => 'success', 'message' => "CODE ACCEPTED! \$$val added securely to your Virtual Vault."];
+            $response = ['status' => 'success', 'message' => "ACCEPTED! \$$val added securely to your Virtual Vault."];
             break;
 
         case 'create_voucher':
@@ -135,11 +158,12 @@ try {
             $code = strtoupper(preg_replace('/\s+/', '', $_POST['code']));
             $value = floatval($_POST['discount_value']);
             $limit = intval($_POST['max_uses']);
+            $target = $_POST['target_role'];
             
-            $stmt = $conn->prepare("INSERT INTO vouchers (code, discount_value, max_uses) VALUES (?, ?, ?)");
-            $stmt->bind_param("sdi", $code, $value, $limit);
+            $stmt = $conn->prepare("INSERT INTO vouchers (code, discount_value, max_uses, target_role) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("sdis", $code, $value, $limit, $target);
             if($stmt->execute()) {
-                $response = ['status' => 'success', 'message' => "Global Drop: Voucher $code was generated!"];
+                $response = ['status' => 'success', 'message' => "Global Drop: Voucher $code was generated for $target!"];
             } else {
                 throw new Exception("Code already exists in the system.");
             }
@@ -154,7 +178,8 @@ try {
 
         case 'cancel_order':
             $id = intval($_POST['id']);
-            $checkQ = $conn->query($is_admin ? "SELECT * FROM orders WHERE id=$id AND status='pending'" : "SELECT * FROM orders WHERE id=$id AND user_id=$user_id AND status='pending'");
+            $hasAuth = ($is_admin || $is_staff) ? "1=1" : "user_id=$user_id";
+            $checkQ = $conn->query("SELECT * FROM orders WHERE id=$id AND status='pending' AND $hasAuth");
             if ($checkQ->num_rows > 0) {
                 $order = $checkQ->fetch_assoc();
                 $refund = $order['total_price'];
@@ -162,6 +187,8 @@ try {
                 $conn->query("UPDATE orders SET status='cancelled' WHERE id=$id");
                 $conn->query("UPDATE users SET wallet = wallet + $refund WHERE id=$buyer_id");
                 $response = ['status' => 'success', 'message' => 'Order Cancelled & Refunded'];
+            } else {
+                throw new Exception("Cannot process rejection on this order.");
             }
             break;
 
@@ -174,8 +201,8 @@ try {
 
         case 'add_food':
             if (!$is_admin) throw new Exception("Denied");
-            $stmt = $conn->prepare("INSERT INTO menu (food_name, price) VALUES (?, ?)");
-            $stmt->bind_param("sd", $_POST['food_name'], $_POST['price']);
+            $stmt = $conn->prepare("INSERT INTO menu (food_name, price, diet_type) VALUES (?, ?, ?)");
+            $stmt->bind_param("sds", $_POST['food_name'], $_POST['price'], $_POST['diet_type']);
             $stmt->execute();
             $response = ['status' => 'success'];
             break;
@@ -214,7 +241,7 @@ try {
             $winnerQ = $conn->query("SELECT * FROM menu_polls WHERE is_active=1 ORDER BY votes DESC LIMIT 1");
             if ($w = $winnerQ->fetch_assoc()) {
                 $win_name = $w['item_name'];
-                $stmt = $conn->prepare("INSERT INTO menu (food_name, price) VALUES (?, 6.50)");
+                $stmt = $conn->prepare("INSERT INTO menu (food_name, price, diet_type) VALUES (?, 6.50, 'Non-Veg')");
                 $stmt->bind_param("s", $win_name);
                 $stmt->execute();
                 $conn->query("UPDATE menu_polls SET is_active=0");
@@ -233,7 +260,7 @@ try {
             break;
 
         case 'vote':
-            if ($role !== 'user') throw new Exception("Denied");
+            if (!in_array($role, ['user', 'staff'])) throw new Exception("Denied");
             $poll_id = intval($_POST['id']);
             $check = $conn->query("SELECT * FROM user_votes WHERE user_id=$user_id");
             if ($check->num_rows == 0) {
@@ -253,7 +280,7 @@ try {
             break;
             
         case 'rate_order':
-            if ($role !== 'user') throw new Exception("Denied");
+            if (!in_array($role, ['user', 'staff'])) throw new Exception("Denied");
             $order_id = intval($_POST['order_id']);
             $rating = intval($_POST['rating']);
             $review = $_POST['review'];
@@ -261,10 +288,11 @@ try {
             $stmt = $conn->prepare("INSERT INTO feedback (order_id, user_id, rating, review_text) VALUES (?, ?, ?, ?)");
             $stmt->bind_param("iiis", $order_id, $user_id, $rating, $review);
             $stmt->execute();
-            $response = ['status' => 'success', 'redirect' => 'my_orders.php'];
+            $response = ['status' => 'success', 'redirect' => ($role==='staff' ? 'facultyOrders.php' : 'myOrders.php')];
             break;
     }
 } catch (Exception $e) {
+    // Explicitly return JSON errors caught from manual Throw Exceptions above!
     $response = ['status' => 'error', 'message' => $e->getMessage()];
 }
 
