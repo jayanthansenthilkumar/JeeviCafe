@@ -13,7 +13,9 @@ $username = $me['username'];
 $role = trim(strtolower($me['role']));
 $user_id = $_SESSION['user_id'];
 $wallet = $me['wallet'];
+$wallet = $me['wallet'];
 $loyalty_points = $me['loyalty_points'] ?? 0;
+$currentPage = basename($_SERVER['PHP_SELF']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -32,27 +34,27 @@ $loyalty_points = $me['loyalty_points'] ?? 0;
         <h2>Jeevi's Cafe</h2>
         <ul>
             <?php if ($role === 'user'): ?>
-            <li><a href="index.php">Place Order</a></li>
-            <li><a href="vote.php">Community Menu Poll</a></li>
-            <li><a href="studentVouchers.php">Claim Live Offers</a></li>
-            <li><a href="myOrders.php">My Orders</a></li>
+            <li><a href="index.php" class="<?php echo ($currentPage=='index.php')?'active':''; ?>">Place Order</a></li>
+            <li><a href="vote.php" class="<?php echo ($currentPage=='vote.php')?'active':''; ?>">Community Menu Poll</a></li>
+            <li><a href="studentVouchers.php" class="<?php echo ($currentPage=='studentVouchers.php')?'active':''; ?>">Claim Live Offers</a></li>
+            <li><a href="myOrders.php" class="<?php echo ($currentPage=='myOrders.php')?'active':''; ?>">My Orders</a></li>
             <?php endif; ?>
             
             <?php if ($role === 'staff'): ?>
-            <li><a href="facultyIndex.php">Request Canteen Order</a></li>
-            <li><a href="facultyVote.php">Faculty Menu Input</a></li>
-            <li><a href="facultyVouchers.php">Faculty Rewards Hub</a></li>
-            <li><a href="facultyOrders.php">My Order History</a></li>
+            <li><a href="facultyIndex.php" class="<?php echo ($currentPage=='facultyIndex.php')?'active':''; ?>">Request Canteen Order</a></li>
+            <li><a href="facultyVote.php" class="<?php echo ($currentPage=='facultyVote.php')?'active':''; ?>">Faculty Menu Input</a></li>
+            <li><a href="facultyVouchers.php" class="<?php echo ($currentPage=='facultyVouchers.php')?'active':''; ?>">Faculty Rewards Hub</a></li>
+            <li><a href="facultyOrders.php" class="<?php echo ($currentPage=='facultyOrders.php')?'active':''; ?>">My Order History</a></li>
             <?php endif; ?>
 
             <?php if ($role === 'admin'): ?>
-            <li><a href="dashboard.php">Business Dashboard</a></li>
-            <li><a href="users.php">Manage Students</a></li>
-            <li><a href="vouchers.php">Voucher Promotions</a></li>
-            <li><a href="orders.php">Manage Orders</a></li>
-            <li><a href="managePolls.php">Voting Engine</a></li>
-            <li><a href="menuManager.php">Manage Live Menu</a></li>
-            <li><a href="prediction.php">AI & ML Pipelines</a></li>
+            <li><a href="dashboard.php" class="<?php echo ($currentPage=='dashboard.php')?'active':''; ?>">Business Dashboard</a></li>
+            <li><a href="users.php" class="<?php echo ($currentPage=='users.php')?'active':''; ?>">Manage Students</a></li>
+            <li><a href="vouchers.php" class="<?php echo ($currentPage=='vouchers.php')?'active':''; ?>">Voucher Promotions</a></li>
+            <li><a href="orders.php" class="<?php echo ($currentPage=='orders.php')?'active':''; ?>">Manage Orders</a></li>
+            <li><a href="managePolls.php" class="<?php echo ($currentPage=='managePolls.php')?'active':''; ?>">Voting Engine</a></li>
+            <li><a href="menuManager.php" class="<?php echo ($currentPage=='menuManager.php')?'active':''; ?>">Manage Live Menu</a></li>
+            <li><a href="prediction.php" class="<?php echo ($currentPage=='prediction.php')?'active':''; ?>">AI & ML Pipelines</a></li>
             <?php endif; ?>
         </ul>
     </div>
@@ -65,11 +67,24 @@ $loyalty_points = $me['loyalty_points'] ?? 0;
             ?></h3>
             <div class="user-info">
                 <?php if($role === 'user' || $role === 'staff'): ?>
-                <span class="badge badge-completed" style="background:#dd6b20; font-size:14px; margin-right:10px; padding: 6px 12px;">🌟 <span id="nav-points"><?php echo $loyalty_points; ?></span> Points</span>
-                <span class="badge badge-completed" style="background:#38a169; font-size:14px; margin-right:15px; padding: 6px 12px;">💳 Vault: $<span id="nav-wallet"><?php echo number_format($wallet, 2); ?></span></span>
+                <div class="badge-group">
+                    <span class="badge" style="background:#FFF5E6; color:#D4A373; border: 1px solid #D4A373;">🌟 <span id="nav-points"><?php echo $loyalty_points; ?></span> Pts</span>
+                    <span class="badge" style="background:#F0F5E4; color:#6B8E23; border: 1px solid #6B8E23;">💳 $<span id="nav-wallet"><?php echo number_format($wallet, 2); ?></span></span>
+                </div>
                 <?php endif; ?>
-                <span>Logged in as <strong><?php echo htmlspecialchars($username); ?></strong></span>
-                <button onclick="handleAction('logout')" class="btn-logout" style="margin-left: 10px; border:none; cursor:pointer;">Logout</button>
+                
+                <div class="user-dropdown-container">
+                    <div class="user-avatar-btn">
+                        <div class="avatar-circle"><?php echo strtoupper(substr($username, 0, 1)); ?></div>
+                        <span class="avatar-text"><?php echo htmlspecialchars($username); ?> ▾</span>
+                    </div>
+                    <div class="dropdown-menu">
+                        <a href="javascript:void(0)" onclick="toggleChatbot()">🤖 Ask AI Assistant</a>
+                        <a href="<?php echo ($role === 'user') ? 'myOrders.php' : (($role === 'staff') ? 'facultyOrders.php' : 'orders.php'); ?>">🧾 Order Ledger</a>
+                        <div class="divider"></div>
+                        <a href="javascript:void(0)" onclick="handleAction('logout')" class="logout-link">🚪 Disconnect Profile</a>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="content-body">
