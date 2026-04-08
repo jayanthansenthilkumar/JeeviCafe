@@ -31,9 +31,9 @@ $rev = ($rRow = $revQ->fetch_assoc()) && $rRow['rev'] ? '$' . number_format($rRo
 </div>
 
 <h2 style="margin-bottom: 20px;">Administrative Actions</h2>
-<div style="display: flex; gap: 10px;">
-    <button onclick="window.location.href='users.php'" class="btn" style="width: 200px;">Assign Stipends (Wallets)</button>
-    <button onclick="window.location.href='menu_manager.php'" class="btn" style="width: 200px; background-color: #4a5568;">Manage Foods</button>
-    <button onclick="handleAction('run_prediction')" class="btn" style="width: 200px; background-color: #38a169;">Run Analytics Engine</button>
+<div style="display: flex; gap: var(--space-md); flex-wrap: wrap;">
+    <button onclick="window.location.href='users.php'" class="btn" style="flex: 1; min-width: 200px;">Assign Stipends (Wallets)</button>
+    <button onclick="window.location.href='menuManager.php'" class="btn" style="flex: 1; min-width: 200px; background-color: #4a5568;">Manage Foods</button>
+    <button onclick="handleAction('run_prediction')" class="btn" style="flex: 1; min-width: 200px; background-color: var(--success);">Run Analytics Engine</button>
 </div>
 <?php require 'includes/footer.php'; ?>
